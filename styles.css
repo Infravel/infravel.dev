@@ -453,6 +453,24 @@ textarea {
 
 select {
     appearance: none;
+    color-scheme: dark;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+select option,
+select optgroup {
+    background: var(--surface);
+    color: var(--text);
+}
+
+select option:disabled {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+select option:checked,
+select option:hover {
+    background: rgba(87, 215, 160, 0.14);
+    color: var(--text);
 }
 
 textarea {
