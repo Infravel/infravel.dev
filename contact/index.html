@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact | Infravel</title>
+    <meta name="description" content="Start a project assessment with Infravel for CI/CD deployment automation or monitoring and observability.">
+    <link rel="canonical" href="https://infravel.dev/contact/">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#080c14">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Contact | Infravel">
+    <meta property="og:description" content="Start a project assessment with Infravel for CI/CD deployment automation or monitoring and observability.">
+    <meta property="og:url" content="https://infravel.dev/contact/">
+    <meta property="og:site_name" content="Infravel">
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Contact | Infravel">
+    <meta name="twitter:description" content="Start a project assessment with Infravel for CI/CD deployment automation or monitoring and observability.">
+
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand-link" href="/">INFRAVEL</a>
+            <nav class="site-nav" aria-label="Main navigation">
+                <a href="/services/">Services</a>
+                <a href="/work/">Work</a>
+                <a href="/about/">About</a>
+                <a href="/contact/" aria-current="page">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero hero-compact">
+            <div class="container">
+                <p class="eyebrow">PROJECT ASSESSMENT</p>
+                <h1>Start a project assessment without a call.</h1>
+                <p class="hero-copy">Share your deployment and monitoring challenges so Infravel can review your project and recommend the right next steps.</p>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="container form-panel">
+                <div class="section-intro">
+                    <h2>Project assessment form</h2>
+                    <p>Provide project context and we will respond with an assessment. If form submissions are not configured yet, the page will explain the next step.</p>
+                </div>
+
+                <form class="contact-form" method="POST" action="#">
+                    <div class="form-grid">
+                        <label>
+                            <span>Name</span>
+                            <input type="text" name="name" required placeholder="Your name">
+                        </label>
+                        <label>
+                            <span>Work email</span>
+                            <input type="email" name="email" required placeholder="you@company.com">
+                        </label>
+                        <label>
+                            <span>Company / organization</span>
+                            <input type="text" name="company" required placeholder="Company name">
+                        </label>
+                        <label>
+                            <span>Service interested in</span>
+                            <select name="service" required>
+                                <option value="">Choose a service</option>
+                                <option value="ci-cd">CI/CD & Deployment Automation</option>
+                                <option value="monitoring">Monitoring & Observability</option>
+                                <option value="both">Both</option>
+                                <option value="not-sure">Not sure</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <label>
+                        <span>What are you trying to improve?</span>
+                        <textarea name="improvement" rows="4" required placeholder="Describe the current challenge"></textarea>
+                    </label>
+
+                    <label>
+                        <span>Current infrastructure or hosting</span>
+                        <textarea name="infrastructure" rows="3" placeholder="Cloud, VMs, containers, etc."></textarea>
+                    </label>
+
+                    <label>
+                        <span>Current deployment process</span>
+                        <textarea name="deployment" rows="3" placeholder="How releases are performed today"></textarea>
+                    </label>
+
+                    <label>
+                        <span>Current monitoring setup</span>
+                        <textarea name="monitoring" rows="3" placeholder="Metrics, logs, dashboards, alerting"></textarea>
+                    </label>
+
+                    <label>
+                        <span>Main pain point</span>
+                        <textarea name="pain_point" rows="3" placeholder="What is the most urgent issue?"></textarea>
+                    </label>
+
+                    <label>
+                        <span>Approximate number of servers or services</span>
+                        <input type="text" name="scale" placeholder="Example: 5 servers, 10 services">
+                    </label>
+
+                    <label>
+                        <span>Desired timeline</span>
+                        <input type="text" name="timeline" placeholder="Example: next quarter">
+                    </label>
+
+                    <label>
+                        <span>Relevant website or public repository</span>
+                        <input type="url" name="reference" placeholder="https://example.com">
+                    </label>
+
+                    <label>
+                        <span>Additional notes</span>
+                        <textarea name="notes" rows="3" placeholder="Other details you want to share"></textarea>
+                    </label>
+
+                    <p class="consent-note">By submitting this form, you agree that Infravel may use the project details to respond to your inquiry.</p>
+
+                    <div class="form-actions">
+                        <button class="button button-primary" type="submit" disabled>Submit assessment</button>
+                        <p class="form-status">Project assessment submissions are not active yet in this static site. A future form endpoint can be added without changing page structure.</p>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <p>Infravel — Infrastructure that moves with you.</p>
+            <nav class="footer-nav" aria-label="Footer navigation">
+                <a href="/services/">Services</a>
+                <a href="/work/">Work</a>
+                <a href="/about/">About</a>
+                <a href="/contact/">Contact</a>
+            </nav>
+        </div>
+    </footer>
+</body>
+</html>
