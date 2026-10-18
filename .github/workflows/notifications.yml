@@ -1,0 +1,22 @@
+name: Retry persisted lead notifications
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  retry:
+    if: vars.ENABLE_NOTIFICATION_RETRY == 'true'
+    runs-on: ubuntu-latest
+    environment: notifications
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node scripts/retry-notifications.mjs
+        env:
+          NOTIFICATION_RETRY_URL: ${{ vars.NOTIFICATION_RETRY_URL }}
+          RETRY_SECRET: ${{ secrets.RETRY_SECRET }}

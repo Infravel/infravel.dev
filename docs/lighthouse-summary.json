@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-15",
+  "target": "http://127.0.0.1:3100",
+  "mode": "Local Next.js production build, staging noindex, mobile simulation",
+  "scores": {
+    "performance": 97,
+    "accessibility": 100,
+    "bestPractices": 100,
+    "seo": 66
+  },
+  "observedMetrics": {
+    "largestContentfulPaint": "2.4 s",
+    "totalBlockingTime": "110 ms"
+  },
+  "limits": "Local measurement, not Cloudflare field performance. SEO score is reduced by intentional staging noindex. Initial measurement under concurrent build/install load scored performance 82; the quiet rerun scored 97. Raw report was cleared by the subsequent Playwright run; this summary records the observed output."
+}

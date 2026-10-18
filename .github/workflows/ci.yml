@@ -1,0 +1,41 @@
+name: Validate website
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      DEPLOYMENT_ENV: staging
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run build:worker
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Dependency audit (unresolved advisories block release)
+        run: npm audit --audit-level=high
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: validation-results
+          path: |
+            test-results/
+            playwright-report/

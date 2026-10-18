@@ -1,53 +1,28 @@
-# infravel.dev
-Official static website for Infravel — infrastructure engineering that moves with you.
+# Infravel
 
-This repository hosts the Infravel website on Cloudflare Pages with a plain HTML/CSS implementation.
+Founder-led DevOps consulting website built with Next.js App Router, TypeScript, Tailwind CSS, and OpenNext for Cloudflare Workers. Includes six configurable service packages, protected quote requests, OpsPilot waitlist, technical articles, and truthful reference architectures.
 
-- Production domain: https://infravel.dev
-- Hosting: Cloudflare Pages
-- Deployment: automatic from `main`
-- Static site: no build step required
+**Production remains unchanged.** Original static HTML/CSS is preserved. The previous README identifies Cloudflare Pages with automatic deployment from main. The new application is prepared for a separate Workers staging deployment. No push, production deploy, or DNS change is authorized.
 
-## Site structure
+Use Node 22.15+; run `npm ci` then `npm run dev`. On Windows use npm.cmd if PowerShell blocks npm.ps1. Copy .env.example to .env.local and .dev.vars.example to .dev.vars for local configuration. Forms stay disabled until Turnstile is configured; persistence requires D1. Missing email credentials preserve pending notifications. Transactional mail uses server-only BREVO_API_KEY with configurable EMAIL_FROM and LEAD_NOTIFICATION_TO. See [staging configuration](docs/staging.md) before deployment and [delivery/retry limits](docs/email.md); uncertain provider acceptance can cause duplicate notifications.
 
-- `/` — Homepage
-- `/services/` — Services overview
-- `/services/cicd-deployment-automation/` — CI/CD & Deployment Automation
-- `/services/monitoring-observability/` — Monitoring & Observability
-- `/work/` — Work / open-source engineering preview
-- `/about/` — About Infravel
-- `/contact/` — Project assessment form placeholder
+Checks: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run build:worker`, `npm run test:e2e`, `npm audit --audit-level=high`.
 
-## Local preview
+| Guide                                          | Purpose                                       |
+| ---------------------------------------------- | --------------------------------------------- |
+| [Audit and plan](docs/audit.md)                | Existing repository evidence and architecture |
+| [Local development](docs/local-development.md) | UI and Worker preview                         |
+| [Environment reference](docs/environment.md)   | Public variables, runtime secrets, GitHub     |
+| [Cloudflare](docs/cloudflare.md)               | Configuration and account checks              |
+| [D1](docs/d1.md)                               | Migrations, backup, recovery, retention       |
+| [Turnstile](docs/turnstile.md)                 | Bot protection and live verification          |
+| [Email](docs/email.md)                         | Brevo and persisted retries                   |
+| [Staging](docs/staging.md)                     | Separate preview deployment                   |
+| [Production](docs/production.md)               | Approval-controlled cutover                   |
+| [Rollback](docs/rollback.md)                   | Restore app/domain and preserve leads         |
+| [Analytics](docs/analytics.md)                 | Events and privacy                            |
+| [Testing](docs/testing.md)                     | Coverage and limits                           |
+| [Verification](docs/verification.md)           | Actual test/build results                     |
+| [Launch checklist](docs/launch-checklist.md)   | Required owner/configuration review           |
 
-From the project root run:
-
-```powershell
-python -m http.server 8000
-```
-
-Then open:
-
-```text
-http://localhost:8000
-```
-
-## Notes
-
-- The contact form UI is in place, but submissions are not configured in this static site.
-- SEO support includes canonical URLs, Open Graph metadata, structured data, robots, and sitemap files.
-
-- Production domain: https://infravel.dev
-- Hosted on Cloudflare Pages
-- Deploys automatically from the `main` branch
-- Built with plain HTML and CSS, no build step required
-
-## Local preview
-
-Open `index.html` directly in a browser, or run a local server from the project root:
-
-```bash
-python -m http.server 8000
-```
-
-Then visit `http://localhost:8000`.
+Browser form success tests explicitly mock widget/API integrations. SQL integration tests execute the migration in SQLite. These do not establish a live remote round trip. No production deployment workflow is included; staging is manually dispatched and notifications scheduling is gated by configuration.

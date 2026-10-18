@@ -1,0 +1,8 @@
+# Copy to .dev.vars for Wrangler local preview. Never commit secrets.
+TURNSTILE_SECRET_KEY=
+TURNSTILE_HOSTNAMES=localhost,127.0.0.1
+RATE_LIMIT_SALT=
+BREVO_API_KEY=
+EMAIL_FROM=Infravel <hello@infravel.dev>
+LEAD_NOTIFICATION_TO=
+RETRY_SECRET=

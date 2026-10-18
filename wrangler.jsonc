@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "infravel-staging",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "workers_dev": true,
+  "preview_urls": true,
+  "vars": { "DEPLOYMENT_ENV": "staging" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "infravel-staging",
+      "database_id": "d7229cbc-7449-4448-ab82-e814728b66d4",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "env": {
+    "production": {
+      "name": "infravel-production",
+      "workers_dev": false,
+      "preview_urls": false,
+      "vars": { "DEPLOYMENT_ENV": "production" },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "infravel-production",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+    },
+  },
+}
