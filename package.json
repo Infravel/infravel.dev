@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "build:worker": "opennextjs-cloudflare build",
+    "build:worker": "opennextjs-cloudflare build && npm run check:worker",
     "preview": "npm run build:worker && opennextjs-cloudflare preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -17,11 +17,12 @@
     "test:e2e": "playwright test",
     "db:migrate": "wrangler d1 migrations apply DB --local",
     "notifications:retry": "node scripts/retry-notifications.mjs",
-    "format": "prettier --write src tests scripts *.ts *.mjs *.json *.jsonc .github docs README.md"
+    "format": "prettier --write src tests scripts *.ts *.mjs *.json *.jsonc .github docs README.md",
+    "check:worker": "node scripts/check-worker-manifests.mjs"
   },
   "dependencies": {
     "@fontsource/geist": "5.3.0",
-    "@opennextjs/cloudflare": "1.20.11",
+    "@opennextjs/cloudflare": "1.20.12",
     "lucide-react": "1.57.0",
     "next": "16.4.1",
     "react": "19.3.1",
