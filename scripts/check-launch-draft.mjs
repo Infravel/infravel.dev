@@ -44,6 +44,7 @@ try {
   const mainCommands = release.steps.map((s) => s.run || "").join("\n");
   if (
     Object.keys(main.on).join() !== "workflow_dispatch" ||
+    main.permissions?.actions !== "read" ||
     release.environment !== "production" ||
     !release.if.includes("refs/heads/main") ||
     !release.steps.some(
