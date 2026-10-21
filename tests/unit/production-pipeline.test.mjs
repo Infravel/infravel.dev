@@ -10,8 +10,8 @@ const environment = () => ({
   protection_rules: [
     {
       type: "required_reviewers",
-      reviewers: [{ id: 1 }],
-      prevent_self_review: true,
+      reviewers: [{ type: "User", reviewer: { login: "shekhar396" } }],
+      prevent_self_review: false,
     },
   ],
   can_admins_bypass: false,
@@ -40,9 +40,42 @@ describe("main production pipeline", () => {
       verifyEnvironment(environment(), [{ name: "staging", type: "branch" }]),
     ).toThrow();
     const selfReview = environment();
-    selfReview.protection_rules[0].prevent_self_review = false;
+    selfReview.protection_rules[0].prevent_self_review = true;
     expect(() =>
       verifyEnvironment(selfReview, [{ name: "main", type: "branch" }]),
+    ).not.toThrow();
+  });
+  it.each([
+    { reviewers: [] },
+    { reviewers: [{ type: "User", reviewer: { login: "another-user" } }] },
+    { reviewers: [{ type: "Team", reviewer: { login: "shekhar396" } }] },
+    {
+      reviewers: [
+        { type: "User", reviewer: { login: "shekhar396" } },
+        { type: "User", reviewer: { login: "another-user" } },
+      ],
+    },
+  ])(
+    "rejects missing, substituted or alternative approvers: %j",
+    ({ reviewers }) => {
+      const config = environment();
+      config.protection_rules[0].reviewers = reviewers;
+      expect(() =>
+        verifyEnvironment(config, [{ name: "main", type: "branch" }]),
+      ).toThrow();
+    },
+  );
+  it("rejects incomplete self-review metadata and additional deployment branches", () => {
+    const config = environment();
+    delete config.protection_rules[0].prevent_self_review;
+    expect(() =>
+      verifyEnvironment(config, [{ name: "main", type: "branch" }]),
+    ).toThrow();
+    expect(() =>
+      verifyEnvironment(environment(), [
+        { name: "main", type: "branch" },
+        { name: "staging", type: "branch" },
+      ]),
     ).toThrow();
   });
   it("blocks active or unknown Pages Git deployment settings", () => {
@@ -87,6 +120,14 @@ describe("main production pipeline", () => {
       .map((s) => s.run || "")
       .join("\n");
     expect(commands).toContain("check-production-release.mjs");
+    const shaCheck = workflow.jobs.release.steps.find(
+      (step) => step.name === "Match approved main SHA",
+    );
+    expect(shaCheck.env.APPROVED_SHA).toBe("${{ inputs.approved_sha }}");
+    expect(shaCheck.run).toContain('test "$APPROVED_SHA" = "$GITHUB_SHA"');
+    expect(shaCheck.run).toContain(
+      'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+    );
     expect(commands).toContain("deploy-production-version.mjs");
     expect(commands).not.toMatch(
       /migrations apply|d1 execute|secret (put|bulk)|triggers deploy|wrangler pages/,
