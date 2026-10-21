@@ -8,6 +8,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
     environment: staging
     timeout-minutes: 25
@@ -31,7 +32,7 @@ jobs:
       - name: Require explicit staging configuration
         run: node scripts/check-staging.mjs
       - run: npm run build:worker
-      - run: npx wrangler d1 migrations apply DB --remote
-      - run: npx opennextjs-cloudflare deploy
+      - run: npx --no-install wrangler d1 migrations apply DB --config wrangler.jsonc --remote
+      - run: npx --no-install opennextjs-cloudflare deploy --config wrangler.jsonc
       - name: Remote smoke checks
         run: node scripts/smoke.mjs

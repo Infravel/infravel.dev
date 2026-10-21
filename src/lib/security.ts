@@ -12,10 +12,11 @@ export async function readJson(
   limit = 16000,
 ): Promise<unknown> {
   if (
-    !request.headers
+    request.headers
       .get("content-type")
       ?.toLowerCase()
-      .startsWith("application/json")
+      .split(";", 1)[0]
+      .trim() !== "application/json"
   )
     throw new RequestError(415, "Use a JSON request.");
   if (Number(request.headers.get("content-length")) > limit)

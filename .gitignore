@@ -11,3 +11,5 @@ test-results/
 coverage/
 *.tsbuildinfo
 *.log
+.wrangler.production.generated.jsonc
+.production-backups/

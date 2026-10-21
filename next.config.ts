@@ -30,10 +30,21 @@ const config: NextConfig = {
             : []),
         ],
       },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: ".*\\.workers\\.dev" }],
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
     ];
   },
   async redirects() {
     return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.infravel.dev" }],
+        destination: "https://infravel.dev/:path*",
+        permanent: true,
+      },
       {
         source: "/services/cicd-deployment-automation",
         destination: "/services/cicd-pipeline-setup",

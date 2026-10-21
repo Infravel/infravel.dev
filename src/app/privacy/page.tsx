@@ -53,11 +53,12 @@ export default function Privacy() {
           <p>
             Rate limiting stores a salted hash derived from the connecting IP,
             rather than the raw IP, with a ten-minute active window. Expired
-            records are deleted by an operational cleanup process. Inquiry and
-            waitlist retention must be approved before launch; the proposed
-            policy is to review unconverted inquiries after 12 months and remove
-            waitlist entries when no longer needed or when requested. Backups
-            may retain deleted information until their normal expiry.
+            records require operational cleanup; expiry alone does not delete
+            database rows. Inquiry and waitlist retention must be approved
+            before launch; the proposed policy is to review unconverted
+            inquiries after 12 months and remove waitlist entries when no longer
+            needed or when requested. Backups may retain deleted information
+            until their normal expiry.
           </p>
           <h2>Your choices and requests</h2>
           <p>

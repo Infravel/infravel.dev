@@ -1,0 +1,74 @@
+# Manual main-only release; production environment approval required.
+name: Release main to existing production Worker
+on:
+  workflow_dispatch:
+    inputs:
+      approved_sha:
+        description: Exact reviewed main commit SHA
+        required: true
+        type: string
+permissions:
+  contents: read
+  deployments: read
+concurrency:
+  group: infravel-production-release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.repository == 'Infravel/infravel.dev' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      DEPLOYMENT_ENV: production
+      PRODUCTION_LAUNCH_PHASE: precutover
+      PRODUCTION_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      PRODUCTION_D1_DATABASE_ID: ad4400ff-0e66-45e5-be77-f182cf4cb449
+      PRODUCTION_PREVIEW_URL: https://infravel-production.shkhrabdullah.workers.dev
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+      NEXT_PUBLIC_CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+      NEXT_PUBLIC_BOOKING_URL: ${{ vars.BOOKING_URL }}
+      NEXT_PUBLIC_FOUNDER_NAME: ${{ vars.FOUNDER_NAME }}
+      NEXT_TELEMETRY_DISABLED: "1"
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - name: Require approved environment release inputs
+        env:
+          RELEASE_ENABLED: ${{ vars.ENABLE_PRODUCTION_RELEASE }}
+        run: test "$RELEASE_ENABLED" = true && test "$PRODUCTION_ACCOUNT_ID" = f6d4cc93a61d7012130cfbd39b3a84fd
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Match approved main SHA
+        env:
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+        run: test "$APPROVED_SHA" = "$GITHUB_SHA" && test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Verify approvals and Pages Git integration
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/check-production-release.mjs
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm test
+      - run: npm audit --audit-level=high --registry=https://registry.npmjs.org/
+      - run: node scripts/prepare-production.mjs && node scripts/check-production.mjs && node scripts/check-production-d1.mjs
+      - run: npx --no-install opennextjs-cloudflare build --config .wrangler.production.generated.jsonc && npm run check:worker
+      - name: Check existing runtime secret names
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --no-install wrangler secret list --config .wrangler.production.generated.jsonc > "$RUNNER_TEMP/production-secret-names.json"
+          node scripts/check-production-secret-names.mjs "$RUNNER_TEMP/production-secret-names.json"
+      - name: Upload and activate version without changing routing or database
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/deploy-production-version.mjs
+      - run: node scripts/smoke-production.mjs

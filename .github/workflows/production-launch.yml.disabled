@@ -1,0 +1,146 @@
+# INERT DRAFT: GitHub does not execute this extension. Do not rename/enable
+# until owner approval, environment protection, backup rehearsal, and live review.
+name: Approved production Worker preparation (no domain cutover)
+on:
+  workflow_dispatch:
+    inputs:
+      approved_sha:
+        description: Full reviewed staging commit SHA (must match dispatch SHA)
+        required: true
+        type: string
+      confirmation:
+        description: Enter DEPLOY_PRECUTOVER_WORKER
+        required: true
+        type: string
+      apply_migrations:
+        description: Owner reviewed both migrations and authorizes remote application
+        type: boolean
+        default: false
+      backup_reference:
+        description: Reference to verified encrypted backup/recovery evidence (not a secret URL)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: infravel-production-release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: >-
+      github.repository == 'Infravel/infravel.dev' &&
+      github.ref == 'refs/heads/staging' &&
+      vars.ENABLE_PRODUCTION_LAUNCH == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Configure actual required reviewers, prevent self-review/admin bypass, and
+    # selected staging branch in GitHub settings BEFORE enabling this draft.
+    environment: production
+    env:
+      DEPLOYMENT_ENV: production
+      PRODUCTION_LAUNCH_PHASE: precutover
+      PRODUCTION_D1_DATABASE_ID: ${{ vars.PRODUCTION_D1_DATABASE_ID }}
+      PRODUCTION_PREVIEW_URL: ${{ vars.PRODUCTION_PREVIEW_URL }}
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+      NEXT_PUBLIC_CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+      NEXT_PUBLIC_FOUNDER_NAME: ${{ vars.FOUNDER_NAME }}
+      NEXT_PUBLIC_BOOKING_URL: ${{ vars.BOOKING_URL }}
+      NEXT_PUBLIC_CF_ANALYTICS_TOKEN: ${{ vars.CF_ANALYTICS_TOKEN }}
+      NEXT_TELEMETRY_DISABLED: "1"
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Require exact reviewed release and recovery evidence
+        env:
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+          MIGRATIONS_APPROVED: ${{ inputs.apply_migrations }}
+          BACKUP_REFERENCE: ${{ inputs.backup_reference }}
+          BACKUP_VERIFIED: ${{ vars.PRODUCTION_BACKUP_VERIFIED }}
+          PROTECTION_VERIFIED: ${{ vars.PRODUCTION_PROTECTION_VERIFIED }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/staging
+          test "$CONFIRMATION" = DEPLOY_PRECUTOVER_WORKER
+          test "$APPROVED_SHA" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor 7d2d2e38d5a28e76bcfe925d23d540bc31681ffb HEAD
+          test "$MIGRATIONS_APPROVED" = true
+          test "$BACKUP_VERIFIED" = true
+          test "$PROTECTION_VERIFIED" = true
+          test -n "$BACKUP_REFERENCE"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Dependency audit (fail closed, no automatic fixes)
+        run: npm audit --audit-level=high
+      - run: node scripts/prepare-production.mjs
+      - run: node scripts/check-production.mjs
+      - name: Build isolated production Worker
+        run: |
+          npx --no-install opennextjs-cloudflare build --config .wrangler.production.generated.jsonc
+          npm run check:worker
+      - name: Browser checks against the production artifact
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3100
+        run: |
+          set -euo pipefail
+          npx --no-install playwright install --with-deps chromium
+          node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3100 >/tmp/infravel-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --output /dev/null http://127.0.0.1:3100/; then break; fi
+            sleep 1
+          done
+          npm run test:e2e -- --workers=2
+      - name: Validate target and required runtime secret names
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          node scripts/check-production.mjs
+          npx --no-install wrangler secret list --config .wrangler.production.generated.jsonc > /tmp/infravel-secret-names.json
+          node scripts/check-production-secret-names.mjs /tmp/infravel-secret-names.json
+          node scripts/check-production-d1.mjs
+          npx --no-install wrangler d1 migrations list DB --config wrangler.production.d1.jsonc --remote
+      - name: Apply explicitly approved additive migrations
+        id: migrate
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node scripts/check-production-d1.mjs
+          npx --no-install wrangler d1 migrations apply DB --config wrangler.production.d1.jsonc --remote
+      - name: Deploy Worker only (no Pages or custom domains)
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --no-install opennextjs-cloudflare deploy --config .wrangler.production.generated.jsonc
+      - name: Read-only remote smoke
+        run: node scripts/smoke-production.mjs
+      - name: Failure report (no raw logs, traces, bodies, or database exports)
+        if: failure()
+        env:
+          MIGRATION_OUTCOME: ${{ steps.migrate.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+        run: |
+          echo '::error::Production preparation failed. Do not cut over domains or rerun blindly.'
+          printf 'Migration step: %s; deployment step: %s\n' "$MIGRATION_OUTCOME" "$DEPLOY_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Check deployment history and D1 migration state; no automatic database rollback was attempted.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Record successful preparation
+        if: success()
+        run: echo 'Production Worker smoke passed. Live domain cutover still requires separate owner approval and runbook checks.' >> "$GITHUB_STEP_SUMMARY"

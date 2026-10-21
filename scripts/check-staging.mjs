@@ -1,7 +1,13 @@
 import fs from "node:fs";
+import { assertStagingIsolation } from "./staging-isolation.mjs";
 import { parse } from "jsonc-parser";
 
-const config = parse(fs.readFileSync("wrangler.jsonc", "utf8"));
+const errors = [];
+const config = parse(fs.readFileSync("wrangler.jsonc", "utf8"), errors, {
+  allowTrailingComma: true,
+});
+if (errors.length) throw new Error("Invalid Wrangler JSONC.");
+assertStagingIsolation(config);
 
 if (
   !process.env.STAGING_URL?.startsWith("https://") ||
@@ -12,7 +18,9 @@ if (
   !config.d1_databases?.[0]?.database_id ||
   config.d1_databases[0].database_id.startsWith("00000000")
 ) {
-  throw new Error("Invalid staging Worker, URL, Turnstile, or D1 configuration.");
+  throw new Error(
+    "Invalid staging Worker, URL, Turnstile, or D1 configuration.",
+  );
 }
 
 if (
