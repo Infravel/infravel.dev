@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
   deployments: read
+  actions: read
 concurrency:
   group: infravel-production-release
   cancel-in-progress: false
