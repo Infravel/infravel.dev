@@ -8,17 +8,19 @@ export function BrandLogo({
   eager?: boolean;
 }) {
   return (
-    <Image
-      src="/brand/infravel-lockup.webp"
-      alt="Infravel"
-      width={1000}
-      height={550}
-      className={className}
-      // The approved WebP is already 22KB; serve it directly without a runtime
-      // image transformation service or any change to the approved artwork.
-      unoptimized
-      loading={eager ? "eager" : "lazy"}
-      fetchPriority={eager ? "high" : undefined}
-    />
+    <span className={`brand-frame ${className}`}>
+      <Image
+        src="/brand/infravel-lockup.webp"
+        alt="Infravel"
+        width={1000}
+        height={550}
+        className="brand-artwork"
+        // Preserve the approved 22KB file. The display frame removes only the
+        // outer background gutters; no image processing or redrawing is used.
+        unoptimized
+        loading={eager ? "eager" : "lazy"}
+        fetchPriority={eager ? "high" : undefined}
+      />
+    </span>
   );
 }

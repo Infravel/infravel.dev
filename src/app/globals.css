@@ -155,7 +155,8 @@ li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 104px;
+  min-height: 112px;
+  padding-block: 6px;
   gap: 30px;
 }
 .brand {
@@ -164,18 +165,34 @@ li {
   flex-shrink: 0;
   line-height: 0;
 }
-.brand-image {
+.brand-frame {
+  position: relative;
   display: block;
-  width: 160px;
+  overflow: hidden;
+  /* Source window: x=40..960, y=20..530. All lettering and ribbon stay inside.
+     Fade only the remaining background gutter, never the approved artwork. */
+  aspect-ratio: 920 / 510;
+  mask-image:
+    linear-gradient(to right, transparent, #000 2%, #000 98%, transparent),
+    linear-gradient(to bottom, transparent, #000 2%, #000 98%, transparent);
+  mask-composite: intersect;
+}
+.brand-image {
+  width: 180px;
+}
+.brand-artwork {
+  position: absolute;
+  display: block;
+  width: 108.695652%;
+  max-width: none;
   height: auto;
+  left: -4.347826%;
+  top: -3.921569%;
   object-fit: contain;
 }
 .hero-brand-image {
-  display: block;
-  width: min(100%, 320px);
-  height: auto;
-  margin: 0 auto 28px;
-  object-fit: contain;
+  width: min(100%, 224px);
+  margin: 0 auto 16px;
 }
 .hero-brand-panel {
   min-width: 0;
@@ -242,7 +259,7 @@ li {
   padding: 8px;
 }
 .hero {
-  padding: 88px 0 0;
+  padding: 64px 0 0;
   background-image: radial-gradient(
     ellipse at 90% 35%,
     #14324a66,
@@ -253,7 +270,7 @@ li {
   display: grid;
   grid-template-columns: 1.16fr 1fr;
   gap: 58px;
-  align-items: center;
+  align-items: start;
 }
 .hero h1 {
   font-size: clamp(2.375rem, 1.6rem + 2.6vw, 3.75rem);
@@ -284,7 +301,7 @@ li {
   color: var(--cyan);
 }
 .hero-bottom {
-  margin-top: 66px;
+  margin-top: 40px;
   border-top: 1px solid #253044;
   display: flex;
   justify-content: space-between;
@@ -1121,10 +1138,10 @@ li {
 }
 @media (min-width: 1500px) {
   .hero {
-    padding-top: 110px;
+    padding-top: 80px;
   }
   .hero-bottom {
-    margin-top: 85px;
+    margin-top: 48px;
   }
 }
 @media (max-width: 1050px) {
@@ -1140,6 +1157,19 @@ li {
   }
   .hero-grid {
     gap: 30px;
+  }
+  .infrastructure {
+    padding: 20px 16px;
+  }
+  .pipeline {
+    gap: 8px;
+  }
+  .pipeline-node {
+    padding: 12px 8px;
+    gap: 8px;
+  }
+  .runtimes {
+    gap: 8px;
   }
   .hero h1 {
     font-size: var(--heading-1);
@@ -1176,10 +1206,10 @@ li {
     padding-right: 22px;
   }
   .header-inner {
-    min-height: 88px;
+    min-height: 100px;
   }
   .header .brand-image {
-    width: 136px;
+    width: 156px;
   }
   .menu-toggle {
     display: block;
@@ -1187,7 +1217,7 @@ li {
   .nav {
     display: none;
     position: absolute;
-    top: 88px;
+    top: 100px;
     left: 0;
     right: 0;
     background: var(--navy);
@@ -1208,7 +1238,7 @@ li {
   }
   .hero-grid {
     grid-template-columns: 1fr;
-    gap: 35px;
+    gap: 24px;
   }
   .hero h1 {
     font-size: clamp(2.375rem, 1.6rem + 2.6vw, 3.75rem);

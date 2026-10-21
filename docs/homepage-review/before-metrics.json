@@ -1,0 +1,37 @@
+[
+  {
+    "width": 360,
+    "header": 89,
+    "hero": 1605.09375,
+    "headlineTop": 211.375,
+    "logoWidth": 136
+  },
+  {
+    "width": 390,
+    "header": 89,
+    "hero": 1531.703125,
+    "headlineTop": 211.375,
+    "logoWidth": 136
+  },
+  {
+    "width": 768,
+    "header": 105,
+    "hero": 1060.015625,
+    "headlineTop": 380.34375,
+    "logoWidth": 160
+  },
+  {
+    "width": 1024,
+    "header": 105,
+    "hero": 907.578125,
+    "headlineTop": 377.3125,
+    "logoWidth": 160
+  },
+  {
+    "width": 1440,
+    "header": 105,
+    "hero": 907.578125,
+    "headlineTop": 361.984375,
+    "logoWidth": 160
+  }
+]

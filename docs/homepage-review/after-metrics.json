@@ -1,0 +1,37 @@
+[
+  {
+    "width": 360,
+    "header": 101,
+    "hero": 1532.46875,
+    "headlineTop": 223.375,
+    "logoWidth": 169.5625
+  },
+  {
+    "width": 390,
+    "header": 101,
+    "hero": 1456.875,
+    "headlineTop": 223.375,
+    "logoWidth": 169.5625
+  },
+  {
+    "width": 768,
+    "header": 113,
+    "hero": 880.9375,
+    "headlineTop": 247.375,
+    "logoWidth": 195.640625
+  },
+  {
+    "width": 1024,
+    "header": 113,
+    "hero": 773.75,
+    "headlineTop": 222.1875,
+    "logoWidth": 195.640625
+  },
+  {
+    "width": 1440,
+    "header": 113,
+    "hero": 793.75,
+    "headlineTop": 222.1875,
+    "logoWidth": 195.640625
+  }
+]

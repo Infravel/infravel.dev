@@ -7,7 +7,7 @@ test("approved branding, icons, and social metadata resolve", async ({
   await page.goto("/");
   const headerLogo = page.locator(".header .brand img");
   await expect(headerLogo).toHaveAttribute("alt", "Infravel");
-  await expect(page.locator(".hero-brand-image")).toHaveAttribute(
+  await expect(page.locator(".hero-brand-image img")).toHaveAttribute(
     "src",
     "/brand/infravel-lockup.webp",
   );
@@ -69,6 +69,16 @@ test("approved branding, icons, and social metadata resolve", async ({
       return rect.width / rect.height;
     });
     expect(ratio).toBeCloseTo(1000 / 550, 2);
+    const diagramLabelsStayWhole = await page
+      .locator(".pipeline-node strong, .runtimes span")
+      .evaluateAll((labels) =>
+        labels.every((label) => {
+          const range = document.createRange();
+          range.selectNodeContents(label);
+          return range.getClientRects().length === 1;
+        }),
+      );
+    expect(diagramLabelsStayWhole, `diagram labels at ${width}px`).toBe(true);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -98,4 +108,40 @@ test("mobile menu retains the approved logo and keyboard access", async ({
   await page.keyboard.press("Escape");
   await expect(toggle).toBeFocused();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
+});
+
+test("logo download does not move the header or hero content", async ({
+  page,
+}) => {
+  let release!: () => void;
+  const download = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/brand/infravel-lockup.webp", async (route) => {
+    await download;
+    await route.continue();
+  });
+  try {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.evaluate(() => document.fonts.ready);
+    const positions = () =>
+      page
+        .locator(
+          ".header .brand-frame, .hero h1, .hero-brand-image, .infrastructure",
+        )
+        .evaluateAll((elements) =>
+          elements.map((element) => {
+            const { x, y, width, height } = element.getBoundingClientRect();
+            return { x, y, width, height };
+          }),
+        );
+    const before = await positions();
+    release();
+    await page
+      .locator(".header img")
+      .evaluate((image: HTMLImageElement) => image.decode());
+    expect(await positions()).toEqual(before);
+  } finally {
+    release();
+  }
 });
