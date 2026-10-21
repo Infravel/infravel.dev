@@ -4,8 +4,12 @@ export function verifyEnvironment(environment, policies) {
     (r) => r.type === "required_reviewers",
   );
   if (
-    !review?.reviewers?.length ||
-    review.prevent_self_review !== true ||
+    // This fixed repository uses the owner's explicitly approved solo-founder model.
+    // GitHub reviewers are any-of, so reject alternate approvers as well as missing ones.
+    review?.reviewers?.length !== 1 ||
+    review.reviewers[0].type !== "User" ||
+    review.reviewers[0].reviewer?.login?.toLowerCase() !== "shekhar396" ||
+    typeof review.prevent_self_review !== "boolean" ||
     environment.can_admins_bypass !== false ||
     environment.deployment_branch_policy?.custom_branch_policies !== true ||
     environment.deployment_branch_policy?.protected_branches !== false ||
@@ -14,7 +18,7 @@ export function verifyEnvironment(environment, policies) {
     policies[0].type !== "branch"
   ) {
     throw new Error(
-      "Production requires reviewers, no self-review/admin bypass, and only main deployment policy.",
+      "Production requires sole reviewer shekhar396, an explicit self-review setting, admin bypass disabled, and only main deployment policy.",
     );
   }
 }
