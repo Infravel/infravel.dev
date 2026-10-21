@@ -1,0 +1,106 @@
+name: Validate staging Worker runtime
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DEPLOYMENT_ENV: staging
+      WRANGLER_SEND_METRICS: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run build:worker
+      - name: Smoke-test local workerd
+        timeout-minutes: 7
+        shell: bash
+        run: |
+          set -euo pipefail
+          worker_log=$(mktemp)
+          worker_pid=""
+          finish() {
+            result=$?
+            trap - EXIT
+            if [ -n "$worker_pid" ]; then
+              kill -- "-$worker_pid" 2>/dev/null || true
+              wait "$worker_pid" 2>/dev/null || true
+            fi
+            if grep -Eq 'Unexpected loadManifest|Unexpected evalManifest' "$worker_log"; then
+              echo "::error::Worker manifest loader exception detected."
+              result=1
+            fi
+            if [ "$result" -ne 0 ]; then
+              echo "Local Worker validation failed. Recognized log error categories:"
+              # Print only fixed diagnostic tokens, never raw logs, bodies,
+              # headers, binding values, or generated draft-mode keys.
+              grep -Eo 'Unexpected loadManifest|Unexpected evalManifest|ReferenceError|TypeError|SyntaxError|Error 1101|EADDRINUSE|Failed to start|Runtime failed to start' "$worker_log" | sort | uniq -c || true
+              echo "See the initialization and HTTP status checks above; raw runtime logs are intentionally withheld."
+            fi
+            rm -f -- "$worker_log"
+            exit "$result"
+          }
+          trap finish EXIT
+
+          # Isolate the process group so cleanup also stops workerd children.
+          # Local bindings only; no credentials, remote calls, or migrations.
+          setsid npx --no-install wrangler dev --local --ip 127.0.0.1 --port 8787 --log-level error > "$worker_log" 2>&1 &
+          worker_pid=$!
+          ready=false
+          for attempt in $(seq 1 60); do
+            if ! kill -0 "$worker_pid" 2>/dev/null; then
+              echo "::error::Wrangler exited before the Worker initialized."
+              exit 1
+            fi
+            status=$(curl --silent --connect-timeout 1 --max-time 3 --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8787/ || true)
+            if [ "$status" = 200 ]; then
+              echo "Worker initialized on readiness attempt $attempt."
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != true ]; then
+            echo "::error::Worker did not initialize within 60 readiness attempts (last HTTP status: $status)."
+            exit 1
+          fi
+
+          check_http() {
+            path=$1
+            expected=$2
+            method=${3:-GET}
+            if ! status=$(curl --silent --connect-timeout 2 --max-time 15 --output /dev/null --write-out '%{http_code}' --request "$method" "http://127.0.0.1:8787$path"); then
+              echo "::error::$method $path failed at the transport layer."
+              exit 1
+            fi
+            echo "$method $path: HTTP $status (expected $expected)."
+            if [ "$status" != "$expected" ]; then
+              echo "::error::Unexpected HTTP status for $method $path."
+              exit 1
+            fi
+          }
+          check_http / 200
+          check_http /services 200
+          check_http /contact 200
+          check_http /does-not-exist 404
+          check_http /api/internal/notifications/retry 401 POST
+          kill -0 "$worker_pid"
+          echo "All local Worker HTTP checks passed."

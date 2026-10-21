@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Inert pre-cutover template. Generator requires verified owner inputs.
+  "name": "infravel-production",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [],
+  "vars": { "DEPLOYMENT_ENV": "production" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "infravel-production",
+      "database_id": "",
+      "migrations_dir": "migrations",
+    },
+  ],
+}
