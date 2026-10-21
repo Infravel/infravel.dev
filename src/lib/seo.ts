@@ -14,13 +14,20 @@ export function metadata(
       description,
       url: site.url + path,
       type: "website",
-      images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
+      images: [
+        {
+          url: "/opengraph-image.jpg",
+          width: 1200,
+          height: 630,
+          alt: "Infravel ribbon symbol and wordmark",
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: ["/opengraph-image"],
+      images: ["/opengraph-image.jpg"],
     },
   };
 }

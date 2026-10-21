@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -56,7 +57,10 @@ export default function Home() {
               engineering. Remote collaboration.
             </p>
           </div>
-          <Infrastructure />
+          <div className="hero-brand-panel">
+            <BrandLogo className="hero-brand-image" />
+            <Infrastructure />
+          </div>
         </div>
         <div className="wrap hero-bottom">
           <span>FROM FIRST DEPLOYMENT TO WHAT’S NEXT</span>

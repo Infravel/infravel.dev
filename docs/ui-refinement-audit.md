@@ -1,5 +1,7 @@
 # Infravel UI refinement audit
 
+Branding status update: the owner has now supplied the approved asset package. The earlier logo-pending findings below are historical; see [final branding integration](branding-integration.md) for the completed artwork integration and current launch findings.
+
 Date: 21 October 2026. Local work on `staging`; no commit, push, or deployment.
 
 ## Typography and layout

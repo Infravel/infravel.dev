@@ -15,6 +15,19 @@ export const metadata: Metadata = {
     template: "%s | Infravel",
   },
   description: site.tagline,
+  openGraph: {
+    siteName: site.name,
+    type: "website",
+    images: [
+      {
+        url: "/opengraph-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Infravel ribbon symbol and wordmark",
+      },
+    ],
+  },
+  twitter: { card: "summary_large_image", images: ["/opengraph-image.jpg"] },
   robots: {
     index: process.env.DEPLOYMENT_ENV === "production",
     follow: process.env.DEPLOYMENT_ENV === "production",
@@ -45,6 +58,7 @@ export default function RootLayout({
               name: site.name,
               url: site.url,
               description: site.tagline,
+              logo: new URL("/brand/infravel-symbol-512.png", site.url).href,
             }),
           }}
         />

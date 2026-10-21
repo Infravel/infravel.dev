@@ -155,22 +155,30 @@ li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 88px;
+  min-height: 104px;
   gap: 30px;
 }
 .brand {
   display: inline-flex;
   align-items: center;
-  font-size: 29px;
-  font-weight: 700;
-  letter-spacing: -1.6px;
-  color: var(--on-dark);
+  flex-shrink: 0;
+  line-height: 0;
 }
-.brand-mark {
-  color: var(--cyan);
-  font-size: 42px;
-  margin-right: 9px;
-  line-height: 1;
+.brand-image {
+  display: block;
+  width: 160px;
+  height: auto;
+  object-fit: contain;
+}
+.hero-brand-image {
+  display: block;
+  width: min(100%, 320px);
+  height: auto;
+  margin: 0 auto 28px;
+  object-fit: contain;
+}
+.hero-brand-panel {
+  min-width: 0;
 }
 .brand-dot {
   color: var(--cyan);
@@ -1168,10 +1176,10 @@ li {
     padding-right: 22px;
   }
   .header-inner {
-    min-height: 72px;
+    min-height: 88px;
   }
-  .brand {
-    font-size: 27px;
+  .header .brand-image {
+    width: 136px;
   }
   .menu-toggle {
     display: block;
@@ -1179,7 +1187,7 @@ li {
   .nav {
     display: none;
     position: absolute;
-    top: 72px;
+    top: 88px;
     left: 0;
     right: 0;
     background: var(--navy);

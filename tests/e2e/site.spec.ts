@@ -199,6 +199,15 @@ test("marketing routes remain readable and accessible at target widths", async (
   for (const route of [...new Set(routes)]) {
     await page.goto(route);
     await page.evaluate(() => document.fonts.ready);
+    await expect(page.locator(".header .brand img")).toHaveAttribute(
+      "src",
+      "/brand/infravel-lockup.webp",
+    );
+    await expect(page.locator(".footer .brand img")).toHaveAttribute(
+      "src",
+      "/brand/infravel-lockup.webp",
+    );
+    await expect(page.locator(".brand-mark")).toHaveCount(0);
     for (const width of [360, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       expect(

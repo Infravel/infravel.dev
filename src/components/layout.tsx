@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Menu, X } from "lucide-react";
 import { navigation, site } from "@/config/site";
 import { TrackedLink } from "./analytics";
+import { BrandLogo } from "./brand-logo";
 export function Header() {
   const [open, setOpen] = useState(false);
   const path = usePathname();
@@ -24,10 +25,7 @@ export function Header() {
     <header className="header">
       <div className="wrap header-inner">
         <Link className="brand" href="/" aria-label="Infravel home">
-          <span className="brand-mark" aria-hidden="true">
-            ⌁
-          </span>{" "}
-          infravel<span className="brand-dot">.</span>
+          <BrandLogo eager />
         </Link>
         <button
           ref={menuButton}
@@ -67,8 +65,8 @@ export function Footer() {
     <footer className="footer">
       <div className="wrap footer-top">
         <div>
-          <Link className="brand" href="/">
-            infravel<span className="brand-dot">.</span>
+          <Link className="brand" href="/" aria-label="Infravel home">
+            <BrandLogo />
           </Link>
           <p>{site.tagline}</p>
           <p className="fine">
