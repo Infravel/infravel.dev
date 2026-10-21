@@ -72,10 +72,11 @@ export async function submission(
     } else {
       const w = waitlistSchema.parse(data);
       // Do not disclose membership or overwrite an existing person's consent/profile.
-      await env.DB.prepare(
-        "INSERT INTO opspilot_waitlist (id,email,name,company,interest,consent,attribution) VALUES (?,?,?,?,?,?,?) ON CONFLICT(email) DO NOTHING",
-      )
-        .bind(
+      const outbox = crypto.randomUUID();
+      const results = await env.DB.batch([
+        env.DB.prepare(
+          "INSERT INTO opspilot_waitlist (id,email,name,company,interest,consent,attribution) VALUES (?,?,?,?,?,?,?) ON CONFLICT(email) DO NOTHING",
+        ).bind(
           id,
           w.email,
           w.name,
@@ -83,8 +84,20 @@ export async function submission(
           w.interest,
           w.consent ? 1 : 0,
           JSON.stringify(w.attribution),
-        )
-        .run();
+        ),
+        // Only the newly inserted registration can enqueue work. Duplicates
+        // retain the original profile/consent and never create another email.
+        env.DB.prepare(
+          "INSERT INTO waitlist_notification_outbox (id,waitlist_id) SELECT ?,id FROM opspilot_waitlist WHERE id=?",
+        ).bind(outbox, id),
+      ]);
+      if (results[1].meta.changes === 1) {
+        try {
+          await deps.notify(env, outbox, undefined, "waitlist");
+        } catch {
+          /* The persisted outbox remains available to retry. */
+        }
+      }
     }
     return Response.json(
       {

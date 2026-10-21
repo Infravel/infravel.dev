@@ -4,6 +4,9 @@ import type { D1Database } from "@cloudflare/workers-types";
 export function database() {
   const sqlite = new DatabaseSync(":memory:");
   sqlite.exec(readFileSync("migrations/0001_initial.sql", "utf8"));
+  sqlite.exec(
+    readFileSync("migrations/0002_waitlist_notifications.sql", "utf8"),
+  );
   function statement(sql: string, values: unknown[] = []) {
     return {
       bind: (...args: unknown[]) => statement(sql, args),

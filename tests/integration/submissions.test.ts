@@ -137,6 +137,18 @@ describe("D1-backed submissions using SQLite migrations", () => {
         .prepare("SELECT count(*) as n,consent FROM opspilot_waitlist")
         .get(),
     ).toMatchObject({ n: 1, consent: 0 });
+    expect(
+      sqlite
+        .prepare("SELECT count(*) as n FROM waitlist_notification_outbox")
+        .get()?.n,
+    ).toBe(1);
+    expect(deps.notify).toHaveBeenCalledTimes(1);
+    expect(deps.notify).toHaveBeenCalledWith(
+      env,
+      expect.any(String),
+      undefined,
+      "waitlist",
+    );
   });
   it("rejects cross-origin and oversized bodies", async () => {
     const { env, deps } = setup();
@@ -249,15 +261,16 @@ describe("notification outbox", () => {
       "Content-Type": "application/json",
     });
     const payload = JSON.parse(options.body);
-    expect(payload).toEqual({
+    expect(payload).toMatchObject({
       sender: { name: "Infravel", email: "hello@infravel.dev" },
       to: [{ email: "owner@example.com" }],
       replyTo: { email: quote.email },
-      subject: "New Infravel quote request",
-      textContent: expect.stringContaining("Lead "),
+      subject: "New Infravel Quote Request — Docker Deployment",
+      textContent: expect.stringContaining("Lead ID:"),
+      htmlContent: expect.stringContaining("<!doctype html>"),
     });
-    expect(payload.textContent).not.toContain(quote.requirements);
-    expect(payload.textContent).not.toContain(quote.name);
+    expect(payload.textContent).toContain(quote.requirements);
+    expect(payload.textContent).toContain(quote.name);
     expect(
       sqlite.prepare("SELECT notification_status FROM leads").get()
         ?.notification_status,
@@ -280,14 +293,12 @@ describe("notification outbox", () => {
     async (status) => {
       const { env, sqlite, id } = await saved();
       const before = Math.floor(Date.now() / 1000);
-      const send = vi
-        .fn()
-        .mockResolvedValue(
-          new Response("private provider details", {
-            status,
-            headers: { "Retry-After": "600" },
-          }),
-        );
+      const send = vi.fn().mockResolvedValue(
+        new Response("private provider details", {
+          status,
+          headers: { "Retry-After": "600" },
+        }),
+      );
       expect(await notify(env, id, send)).toBe(false);
       const row = sqlite.prepare("SELECT * FROM notification_outbox").get();
       expect(row).toMatchObject({

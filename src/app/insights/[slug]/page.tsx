@@ -56,7 +56,13 @@ export default async function Article({
                 <p key={p}>{p}</p>
               ))}
               {s.code && (
-                <pre>
+                <pre
+                  // Scrollable examples need keyboard focus, including in Safari.
+                  // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                  tabIndex={0}
+                  role="region"
+                  aria-label={`${s.heading} code example`}
+                >
                   <code>{s.code}</code>
                 </pre>
               )}

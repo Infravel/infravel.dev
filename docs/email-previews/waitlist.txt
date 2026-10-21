@@ -1,0 +1,31 @@
+Subject: New Infravel OpsPilot Waitlist Registration
+
+New Infravel OpsPilot Waitlist Registration
+
+Customer full name:
+Sam Example
+
+Customer email:
+sam@example.com
+
+Company:
+Example Cloud
+
+Infrastructure interest:
+Linux and Docker monitoring
+
+Optional marketing updates:
+Not opted in
+
+Registration ID:
+fictional-registration-001
+
+Submitted at (UTC):
+2026-10-21T08:00:00.000Z
+
+Submission form:
+OpsPilot early-access form
+
+Reply to customer: mailto:sam%40example.com
+
+Infravel | Business notification

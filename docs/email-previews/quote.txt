@@ -1,0 +1,47 @@
+Subject: New Infravel Quote Request — CI/CD Pipeline Setup
+
+New Infravel Quote Request
+
+Customer full name:
+Amira Example
+
+Customer email:
+amira@example.com
+
+Company:
+Example Systems
+
+Requested service:
+CI/CD Pipeline Setup
+
+Project description:
+We need a repeatable CI/CD pipeline for our SaaS application.
+Please include staging deployment, automated checks, and a documented handover.
+
+Budget:
+$1,000–$2,500
+
+Timeline:
+Within four weeks
+
+Lead ID:
+fictional-lead-001
+
+Submitted at (UTC):
+2026-10-21T08:00:00.000Z
+
+Submission form:
+Infravel contact / quote form
+
+Lead source (utm_source):
+newsletter
+
+Lead source (utm_medium):
+email
+
+Lead source (utm_campaign):
+engineering-october
+
+Reply to customer: mailto:amira%40example.com
+
+Infravel | Business notification

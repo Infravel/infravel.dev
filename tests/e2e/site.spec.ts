@@ -9,7 +9,10 @@ async function mockSecurity(page: Page) {
     }),
   );
 }
-test("homepage, accessibility, and viewport layout", async ({ page }) => {
+test("homepage, accessibility, and viewport layout", async ({
+  page,
+  isMobile,
+}) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Ship with confidence.",
@@ -18,7 +21,7 @@ test("homepage, accessibility, and viewport layout", async ({ page }) => {
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();
   expect(result.violations).toEqual([]);
-  for (const width of [375, 768, 1024, 1440]) {
+  for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(
       await page.evaluate(
@@ -26,7 +29,11 @@ test("homepage, accessibility, and viewport layout", async ({ page }) => {
       ),
     ).toBe(true);
   }
-  await page.screenshot({ path: "test-results/homepage.png", fullPage: true });
+  await page.setViewportSize({ width: isMobile ? 390 : 1440, height: 900 });
+  await page.screenshot({
+    path: `test-results/homepage-${test.info().project.name}.png`,
+    fullPage: true,
+  });
 });
 test("navigation and mobile menu", async ({ page, isMobile }) => {
   await page.goto("/");
@@ -35,6 +42,9 @@ test("navigation and mobile menu", async ({ page, isMobile }) => {
     await expect(
       page.getByRole("button", { name: "Close menu" }),
     ).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
+    await page.getByRole("button", { name: "Open menu" }).click();
   }
   await page
     .getByRole("navigation", { name: "Main navigation" })
@@ -161,4 +171,49 @@ test("required pages and internal links resolve", async ({ page, request }) => {
     expect((await request.get(href)).status(), href).toBe(200);
   }
   expect((await request.get("/nonexistent")).status()).toBe(404);
+});
+
+test("marketing routes remain readable and accessible at target widths", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await mockSecurity(page);
+  const routes = [
+    "/",
+    "/services",
+    ...services.map((s) => `/services/${s.slug}`),
+    "/about",
+    "/work",
+    "/opspilot",
+    "/contact",
+    "/insights",
+    "/privacy",
+    "/terms",
+  ];
+  await page.goto("/insights");
+  routes.push(
+    ...(await page
+      .locator('main a[href^="/insights/"]')
+      .evaluateAll((links) => links.map((link) => link.getAttribute("href")!))),
+  );
+  for (const route of [...new Set(routes)]) {
+    await page.goto(route);
+    await page.evaluate(() => document.fonts.ready);
+    for (const width of [360, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+        `${route} overflow at ${width}px`,
+      ).toBe(true);
+    }
+    for (const width of [360, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      const result = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+        .analyze();
+      expect(result.violations, `${route} at ${width}px`).toEqual([]);
+    }
+  }
 });

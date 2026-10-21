@@ -1,4 +1,11 @@
 import type { Env } from "./env";
+import {
+  emailAddress,
+  headerText,
+  notificationTemplate,
+  type NotificationKind,
+  type NotificationRecord,
+} from "./notification-template";
 type Outbox = { id: string; lead_id: string; attempts: number };
 const seconds = () => Math.floor(Date.now() / 1000);
 // Keep the existing 23-hour operational review window; this is not deduplication.
@@ -6,21 +13,27 @@ const reviewWindow = 23 * 3600;
 function mailbox(value: string) {
   const match = value.trim().match(/^(.*?)\s*<([^<>]+)>$/);
   return match
-    ? { name: match[1].trim(), email: match[2].trim() }
-    : { email: value.trim() };
+    ? { name: headerText(match[1]), email: emailAddress(match[2].trim()) }
+    : { email: emailAddress(value.trim()) };
 }
 export async function notify(
   env: Env,
   id: string,
   fetcher: typeof fetch = fetch,
+  kind: NotificationKind = "quote",
 ): Promise<boolean> {
   if (!env.BREVO_API_KEY || !env.EMAIL_FROM || !env.LEAD_NOTIFICATION_TO)
     return false;
+  // Identifiers come only from this fixed mapping, never from request data.
+  const table =
+    kind === "quote" ? "notification_outbox" : "waitlist_notification_outbox";
+  const source = kind === "quote" ? "leads" : "opspilot_waitlist";
+  const foreignKey = kind === "quote" ? "lead_id" : "waitlist_id";
   let row: Outbox | null;
   try {
     const now = seconds();
     row = await env.DB.prepare(
-      "UPDATE notification_outbox SET status='processing',lease_until=?,attempts=attempts+1 WHERE id=? AND next_attempt_at<=? AND (status IN ('pending','failed') OR (status='processing' AND lease_until<=?)) AND created_at>? RETURNING id,lead_id,attempts",
+      `UPDATE ${table} SET status='processing',lease_until=?,attempts=attempts+1 WHERE id=? AND next_attempt_at<=? AND (status IN ('pending','failed') OR (status='processing' AND lease_until<=?)) AND created_at>? RETURNING id,${foreignKey} AS lead_id,attempts`,
     )
       .bind(now + 90, id, now, now, now - reviewWindow)
       .first<Outbox>();
@@ -30,13 +43,25 @@ export async function notify(
   if (!row) return false;
   let retryAfter = 0;
   try {
-    const lead = await env.DB.prepare("SELECT email FROM leads WHERE id=?")
+    const columns =
+      kind === "quote"
+        ? "id,name,email,company,service,requirements,timeline,budget,attribution,created_at"
+        : "id,name,email,company,interest,consent,attribution,created_at";
+    const record = await env.DB.prepare(
+      `SELECT ${columns} FROM ${source} WHERE id=?`,
+    )
       .bind(row.lead_id)
-      .first<{ email: string }>();
-    if (!lead) throw new Error("Missing lead");
+      .first<NotificationRecord>();
+    if (!record) throw new Error("Missing notification record");
+    const content = notificationTemplate({
+      ...record,
+      kind,
+    } as NotificationRecord);
+    const sender = mailbox(env.EMAIL_FROM);
+    const recipient = mailbox(env.LEAD_NOTIFICATION_TO);
     // Recheck ownership after the read, before crossing the provider boundary.
     const owned = await env.DB.prepare(
-      "UPDATE notification_outbox SET lease_until=? WHERE id=? AND status='processing' AND attempts=? AND lease_until>? RETURNING id",
+      `UPDATE ${table} SET lease_until=? WHERE id=? AND status='processing' AND attempts=? AND lease_until>? RETURNING id`,
     )
       .bind(seconds() + 90, id, row.attempts, seconds())
       .first();
@@ -48,11 +73,9 @@ export async function notify(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        sender: mailbox(env.EMAIL_FROM),
-        to: [mailbox(env.LEAD_NOTIFICATION_TO)],
-        replyTo: { email: lead.email },
-        subject: "New Infravel quote request",
-        textContent: `Lead ${row.lead_id}\nReview the request in your private D1 workflow.`,
+        sender,
+        to: [recipient],
+        ...content,
       }),
       signal: AbortSignal.timeout(8000),
     });
@@ -74,11 +97,15 @@ export async function notify(
     // D1 batch is atomic. Fence BOTH updates with the claim generation and expiry.
     const acknowledgedAt = seconds();
     const results = await env.DB.batch([
+      ...(kind === "quote"
+        ? [
+            env.DB.prepare(
+              "UPDATE leads SET notification_status='sent' WHERE id=? AND EXISTS (SELECT 1 FROM notification_outbox WHERE id=? AND status='processing' AND attempts=? AND lease_until>?)",
+            ).bind(row.lead_id, id, row.attempts, acknowledgedAt),
+          ]
+        : []),
       env.DB.prepare(
-        "UPDATE leads SET notification_status='sent' WHERE id=? AND EXISTS (SELECT 1 FROM notification_outbox WHERE id=? AND status='processing' AND attempts=? AND lease_until>?)",
-      ).bind(row.lead_id, id, row.attempts, acknowledgedAt),
-      env.DB.prepare(
-        "UPDATE notification_outbox SET status='sent',sent_at=?,lease_until=NULL WHERE id=? AND status='processing' AND attempts=? AND lease_until>?",
+        `UPDATE ${table} SET status='sent',sent_at=?,lease_until=NULL WHERE id=? AND status='processing' AND attempts=? AND lease_until>?`,
       ).bind(acknowledgedAt, id, row.attempts, acknowledgedAt),
     ]);
     return results.every(
@@ -96,11 +123,15 @@ export async function notify(
           Math.min(3600, 60 * 2 ** Math.min(row.attempts, 6)),
         );
       await env.DB.batch([
+        ...(kind === "quote"
+          ? [
+              env.DB.prepare(
+                "UPDATE leads SET notification_status='failed' WHERE id=? AND EXISTS (SELECT 1 FROM notification_outbox WHERE id=? AND status='processing' AND attempts=? AND lease_until>?)",
+              ).bind(row.lead_id, id, row.attempts, failedAt),
+            ]
+          : []),
         env.DB.prepare(
-          "UPDATE leads SET notification_status='failed' WHERE id=? AND EXISTS (SELECT 1 FROM notification_outbox WHERE id=? AND status='processing' AND attempts=? AND lease_until>?)",
-        ).bind(row.lead_id, id, row.attempts, failedAt),
-        env.DB.prepare(
-          "UPDATE notification_outbox SET status='failed',next_attempt_at=?,lease_until=NULL WHERE id=? AND status='processing' AND attempts=? AND lease_until>?",
+          `UPDATE ${table} SET status='failed',next_attempt_at=?,lease_until=NULL WHERE id=? AND status='processing' AND attempts=? AND lease_until>?`,
         ).bind(next, id, row.attempts, failedAt),
       ]);
     } catch {
@@ -112,13 +143,15 @@ export async function notify(
 export async function retryNotifications(env: Env) {
   const now = seconds();
   const rows = await env.DB.prepare(
-    "SELECT id FROM notification_outbox WHERE next_attempt_at<=? AND created_at>? AND (status IN ('pending','failed') OR (status='processing' AND lease_until<=?)) ORDER BY created_at LIMIT 20",
+    `SELECT id,'quote' AS kind,created_at FROM notification_outbox WHERE next_attempt_at<=? AND created_at>? AND (status IN ('pending','failed') OR (status='processing' AND lease_until<=?))
+     UNION ALL
+     SELECT id,'waitlist' AS kind,created_at FROM waitlist_notification_outbox WHERE next_attempt_at<=? AND created_at>? AND (status IN ('pending','failed') OR (status='processing' AND lease_until<=?)) ORDER BY created_at LIMIT 20`,
   )
-    .bind(now, now - reviewWindow, now)
-    .all<{ id: string }>();
+    .bind(now, now - reviewWindow, now, now, now - reviewWindow, now)
+    .all<{ id: string; kind: NotificationKind }>();
   let sent = 0;
   for (const row of rows.results) {
-    if (await notify(env, row.id)) sent++;
+    if (await notify(env, row.id, fetch, row.kind)) sent++;
   }
   return { checked: rows.results.length, sent };
 }
